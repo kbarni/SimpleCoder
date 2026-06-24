@@ -1,0 +1,64 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            os: ubuntu-latest
+          - name: macos
+            os: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Dependencies ---
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake g++ pkg-config \
+            libcurl4-openssl-dev libsqlite3-dev libncurses-dev \
+            catch2
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake pkg-config ncurses sqlite3 catch2
+
+      # macOS: Homebrew ncurses/sqlite3/catch2 are keg-only, so point
+      # pkg-config and CMake at their prefixes.
+      - name: Configure pkg-config / CMake paths (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          echo "PKG_CONFIG_PATH=$(brew --prefix ncurses)/lib/pkgconfig:$(brew --prefix sqlite3)/lib/pkgconfig:${PKG_CONFIG_PATH}" >> "$GITHUB_ENV"
+          echo "CMAKE_PREFIX_PATH=$(brew --prefix catch2):$(brew --prefix sqlite3):${CMAKE_PREFIX_PATH}" >> "$GITHUB_ENV"
+
+      # --- Build ---
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release -j
+
+      # --- Test ---
+      # Integration tests ([integration] tag) auto-skip when no server is
+      # reachable, so the suite stays green offline on CI.
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: SimpleCoder-${{ matrix.name }}
+          path: build/SimpleCoder
