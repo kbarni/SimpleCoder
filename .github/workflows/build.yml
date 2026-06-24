@@ -3,6 +3,7 @@ name: build
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -10,6 +11,9 @@ jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    # Needed for the release step to create/update the GitHub release on a tag.
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -62,3 +66,19 @@ jobs:
         with:
           name: SimpleCoder-${{ matrix.name }}
           path: build/SimpleCoder
+
+      # --- Release (only on a v* tag) ---
+      # Rename the binary so each OS lands as a distinctly-named release asset
+      # (release assets are keyed by filename; the plain "SimpleCoder" from both
+      # jobs would otherwise collide).
+      - name: Stage release binary
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: cp build/SimpleCoder build/SimpleCoder-${{ matrix.name }}
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/SimpleCoder-${{ matrix.name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
