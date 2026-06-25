@@ -1,5 +1,9 @@
 #include "mcp/Transport.hpp"
 
+#include "util/Log.hpp"
+
+#ifndef _WIN32
+
 #include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
@@ -10,8 +14,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <optional>
-
-#include "util/Log.hpp"
 
 namespace llmcli::mcp {
 
@@ -190,3 +192,17 @@ TransportPtr open_stdio_transport(const McpServerConfig& cfg) {
 }
 
 }  // namespace llmcli::mcp
+
+#else  // _WIN32 — MCP subprocess transport not yet implemented
+
+namespace llmcli::mcp {
+
+TransportPtr open_stdio_transport(const McpServerConfig& cfg) {
+  ::llmcli::log().warn("mcp: subprocess transport not supported on Windows (server '" +
+                       cfg.name + "' skipped)");
+  return nullptr;
+}
+
+}  // namespace llmcli::mcp
+
+#endif  // _WIN32
