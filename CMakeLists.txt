@@ -88,38 +88,42 @@ add_executable(SimpleCoder src/main.cpp)
 target_link_libraries(SimpleCoder PRIVATE llm_core)
 
 # --- Tests ---
-enable_testing()
-find_package(Catch2 3 REQUIRED)
-include(Catch)
+option(BUILD_TESTS "Build unit tests" OFF)
 
-add_executable(unit_tests
-  tests/test_config.cpp
-  tests/test_message.cpp
-  tests/test_chat_request.cpp
-  tests/test_chat_response.cpp
-  tests/test_api_client.cpp
-  tests/test_thread_queue.cpp
-  tests/test_log.cpp
-  tests/test_chat_view.cpp
-  tests/test_agent_chat.cpp
-  tests/test_tools.cpp
-  tests/test_confirm_policy.cpp
-  tests/test_agent_tool_loop.cpp
-  tests/test_banner.cpp
-  tests/test_command.cpp
-  tests/test_attachments.cpp
-  tests/test_input.cpp
-  tests/test_utf8.cpp
-  tests/test_markdown.cpp
-  tests/test_system_prompt.cpp
-  tests/test_skills.cpp
-  tests/test_web_tools.cpp
-  tests/test_mcp.cpp
-  tests/test_base64.cpp
-  tests/test_diff.cpp
-)
-target_link_libraries(unit_tests PRIVATE llm_core Catch2::Catch2WithMain)
-# Catch2 exits 4 when a case only SKIPs (e.g. an [integration] test whose server
-# is unreachable); tell CTest to treat that as skipped, not failed, so the suite
-# stays green offline under `ctest` as well as the whole-binary run.
-catch_discover_tests(unit_tests PROPERTIES SKIP_RETURN_CODE 4)
+if(BUILD_TESTS)
+  enable_testing()
+  find_package(Catch2 3 REQUIRED)
+  include(Catch)
+
+  add_executable(unit_tests
+    tests/test_config.cpp
+    tests/test_message.cpp
+    tests/test_chat_request.cpp
+    tests/test_chat_response.cpp
+    tests/test_api_client.cpp
+    tests/test_thread_queue.cpp
+    tests/test_log.cpp
+    tests/test_chat_view.cpp
+    tests/test_agent_chat.cpp
+    tests/test_tools.cpp
+    tests/test_confirm_policy.cpp
+    tests/test_agent_tool_loop.cpp
+    tests/test_banner.cpp
+    tests/test_command.cpp
+    tests/test_attachments.cpp
+    tests/test_input.cpp
+    tests/test_utf8.cpp
+    tests/test_markdown.cpp
+    tests/test_system_prompt.cpp
+    tests/test_skills.cpp
+    tests/test_web_tools.cpp
+    tests/test_mcp.cpp
+    tests/test_base64.cpp
+    tests/test_diff.cpp
+  )
+  target_link_libraries(unit_tests PRIVATE llm_core Catch2::Catch2WithMain)
+  # Catch2 exits 4 when a case only SKIPs (e.g. an [integration] test whose server
+  # is unreachable); tell CTest to treat that as skipped, not failed, so the suite
+  # stays green offline under `ctest` as well as the whole-binary run.
+  catch_discover_tests(unit_tests PROPERTIES SKIP_RETURN_CODE 4)
+endif()

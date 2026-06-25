@@ -166,10 +166,14 @@ server is configured their names are namespaced `<server>__<tool>`.
 
 ## Test
 
+Tests are off by default. Enable them at configure time:
+
 ```sh
+cmake -B build -DBUILD_TESTS=ON
+cmake --build build
 ctest --test-dir build
 # or run the binary directly, by name or tag:
-./unit_tests "[skills]"
+./build/unit_tests "[skills]"
 ```
 
 Integration tests (`[integration]`) target an OpenAI-compatible server at
@@ -227,18 +231,3 @@ focusing on edge cases and error handling.
 
 Then `/skill` lists what's available and `/review-diff` (or
 `/skill review-diff`) injects those instructions into the turn.
-
-## Architecture
-
-All code except `main.cpp` lives in the **`llm_core`** static library, linked by
-both the `SimpleCoder` executable and the `unit_tests` binary. Layers, lowest to
-highest: `llm/` (protocol — messages, requests, streaming, libcurl client),
-`agent/` (tool-calling loop, tools, confirmation gate), `net/` (HTTP for the web
-tools), `mcp/` (Model Context Protocol client behind a JSON-RPC transport seam),
-`ui/` (ncurses widgets), and `app/` (event loop, config, commands, skills).
-
-Two patterns run throughout: **ncurses is touched only on the main thread** (a
-worker thread runs the request and posts events back through a thread-safe
-queue), and **pure logic is split from I/O and rendering** so layout, parsing,
-key handling, and the tool loop are unit-testable headless. See
-[STRUCTURE.md](STRUCTURE.md) for the file-by-file layout.

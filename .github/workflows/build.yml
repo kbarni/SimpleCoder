@@ -20,8 +20,17 @@ jobs:
         include:
           - name: linux
             os: ubuntu-latest
+            shell: bash
           - name: macos
             os: macos-latest
+            shell: bash
+          - name: windows
+            os: windows-latest
+            shell: msys2 {0}
+
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
 
     steps:
       - uses: actions/checkout@v4
@@ -48,6 +57,23 @@ jobs:
           echo "PKG_CONFIG_PATH=$(brew --prefix ncurses)/lib/pkgconfig:$(brew --prefix sqlite3)/lib/pkgconfig:${PKG_CONFIG_PATH}" >> "$GITHUB_ENV"
           echo "CMAKE_PREFIX_PATH=$(brew --prefix catch2):$(brew --prefix sqlite3):${CMAKE_PREFIX_PATH}" >> "$GITHUB_ENV"
 
+      # Windows: use MSYS2 MinGW-w64 for a GCC toolchain with all deps available.
+      # ncurses (wide-char), curl, and sqlite3 are provided as MinGW packages;
+      # Catch2 is omitted here because BUILD_TESTS is off by default.
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-curl
+            mingw-w64-x86_64-sqlite3
+            mingw-w64-x86_64-ncurses
+
       # --- Build ---
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
@@ -65,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SimpleCoder-${{ matrix.name }}
-          path: build/SimpleCoder
+          path: build/SimpleCoder${{ runner.os == 'Windows' && '.exe' || '' }}
 
       # --- Release (only on a v* tag) ---
       # Rename the binary so each OS lands as a distinctly-named release asset
@@ -73,12 +99,12 @@ jobs:
       # jobs would otherwise collide).
       - name: Stage release binary
         if: startsWith(github.ref, 'refs/tags/v')
-        run: cp build/SimpleCoder build/SimpleCoder-${{ matrix.name }}
+        run: cp build/SimpleCoder${{ runner.os == 'Windows' && '.exe' || '' }} build/SimpleCoder-${{ matrix.name }}${{ runner.os == 'Windows' && '.exe' || '' }}
 
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/SimpleCoder-${{ matrix.name }}
+          files: build/SimpleCoder-${{ matrix.name }}${{ runner.os == 'Windows' && '.exe' || '' }}
           generate_release_notes: true
           fail_on_unmatched_files: true
