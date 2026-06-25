@@ -6,23 +6,23 @@ works against any OpenAI-style endpoint. Responses stream token-by-token, and th
 model can call tools (file operations, shell, web access), skills and MCP servers 
 to act on your machine.
 
-It's a hobby project, far from being perfect or as complete as OpenCode or Claude Code;
+As a hobby project, far from being perfect or as complete as OpenCode or Claude Code;
 the goal was to build a simple and fast application in C++ with minimal dependencies
 (ncurses, curl, threads and sqlite3) so it will run on any hardware. No *nodejs* 
 dependency.
 
 ```
  </>SimpleCoder  qwen2.5-coder:7b  @ http://localhost:8080/v1   [ready]   ctx 4.2k/32k (13%)   58.3 tok/s
-┌──────────────────────────────────────────────────────────────────────────┐
+┌────────────────────────────────────────────────────────────────────────────┐
 │ > summarise src/app/App.cpp and check it builds                            │
 │ ▸ thinking (6 lines)                                                       │
 │ ↳ read_file {"path":"src/app/App.cpp"}                                     │
 │ ▸ read_file ✓ (512 lines)                                                  │
-│ * App owns the event loop and the worker thread…                          │
-└──────────────────────────────────────────────────────────────────────────┘
-┌──────────────────────────────────────────────────────────────────────────┐
+│ * App owns the event loop and the worker thread…                           │
+└────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
 │ > _                                                                        │
-└──────────────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Features
@@ -79,16 +79,16 @@ The build uses `-Wall -Wextra -Wpedantic` and is warning-clean.
 ## Run
 
 ```sh
-./build/SimpleCoder --version
-./build/SimpleCoder --help
-./build/SimpleCoder              # interactive chat (needs a configured server)
-./build/SimpleCoder my.conf      # use a custom config file
+./SimpleCoder --version
+./SimpleCoder --help
+./SimpleCoder              # interactive chat (needs a configured server)
+./SimpleCoder my.conf      # use a custom config file
 ```
 
 Quick ad-hoc run against a local server:
 
 ```sh
-env OPENAI_BASE_URL=http://localhost:8080/v1 MODEL=<model> ./build/SimpleCoder
+env OPENAI_BASE_URL=http://localhost:8080/v1 MODEL=<model> ./SimpleCoder
 ```
 
 ### Keys
@@ -169,7 +169,7 @@ server is configured their names are namespaced `<server>__<tool>`.
 ```sh
 ctest --test-dir build
 # or run the binary directly, by name or tag:
-./build/unit_tests "[skills]"
+./unit_tests "[skills]"
 ```
 
 Integration tests (`[integration]`) target an OpenAI-compatible server at
