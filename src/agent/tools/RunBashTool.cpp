@@ -1,6 +1,8 @@
 #include "agent/Tool.hpp"
 
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
 
 #include <array>
 #include <cstdio>
@@ -32,9 +34,13 @@ ToolResult RunBashTool::execute(const json& args) const {
     return {false, "error: 'command' argument is required"};
   }
 
-  // Run in a subshell so the stderr->stdout redirect applies to the whole
-  // command (not just its last statement), letting the model see diagnostics.
+#ifdef _WIN32
+  const std::string full = "cmd /c " + command + " 2>&1";
+#else
+  // Subshell so the stderr->stdout redirect applies to the whole command,
+  // not just its last statement.
   const std::string full = "( " + command + " ) 2>&1";
+#endif
   FILE* pipe = popen(full.c_str(), "r");
   if (!pipe) {
     return {false, "error: failed to start command"};
@@ -48,7 +54,11 @@ ToolResult RunBashTool::execute(const json& args) const {
   }
 
   const int status = pclose(pipe);
+#ifdef _WIN32
+  const int code = status;
+#else
   const int code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+#endif
 
   ToolResult result;
   result.ok = (code == 0);
