@@ -11,6 +11,8 @@ endif()
 
 add_compile_options(-Wall -Wextra -Wpedantic)
 
+option(SIMPLE_UI "Build with plain stdio UI instead of ncurses TUI" OFF)
+
 # --- Dependencies (system packages) ---
 find_package(CURL REQUIRED)
 find_package(SQLite3 REQUIRED)
@@ -18,9 +20,11 @@ find_package(SQLite3 REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-# ncurses (wide-char) via pkg-config
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(NCURSESW REQUIRED IMPORTED_TARGET ncursesw)
+if(NOT SIMPLE_UI)
+  # ncurses (wide-char) — only needed for the full TUI build
+  pkg_check_modules(NCURSESW REQUIRED IMPORTED_TARGET ncursesw)
+endif()
 
 # nlohmann/json — vendored single header in third_party/
 add_library(nlohmann_json INTERFACE)
@@ -29,10 +33,8 @@ target_include_directories(nlohmann_json INTERFACE ${CMAKE_SOURCE_DIR}/third_par
 # Version macro for --version
 add_compile_definitions(SIMPLECODER_VERSION="${PROJECT_VERSION}")
 
-# --- Core library (everything except main(), so tests can link it) ---
-# Add new source files here as Phase 1 progresses.
-add_library(llm_core STATIC
-  src/app/App.cpp
+# --- Source lists ---
+set(CORE_SOURCES
   src/app/Attachments.cpp
   src/app/Command.cpp
   src/app/Config.cpp
@@ -63,14 +65,34 @@ add_library(llm_core STATIC
   src/util/Utf8.cpp
   src/util/Base64.cpp
   src/util/Diff.cpp
+  # Pure UI helpers (no ncurses) — used by both builds.
   src/ui/TextWrap.cpp
   src/ui/Markdown.cpp
-  src/ui/ChatView.cpp
-  src/ui/InputBar.cpp
-  src/ui/ConfirmDialog.cpp
-  src/ui/Tui.cpp
-  src/ui/Theme.cpp
   src/ui/Banner.cpp
+)
+
+if(SIMPLE_UI)
+  add_compile_definitions(SIMPLE_UI)
+  set(APP_SOURCES src/app/SimpleApp.cpp)
+  set(UI_SOURCES "")
+  set(NCURSES_LINK "")
+else()
+  set(APP_SOURCES src/app/App.cpp)
+  set(UI_SOURCES
+    src/ui/ChatView.cpp
+    src/ui/InputBar.cpp
+    src/ui/ConfirmDialog.cpp
+    src/ui/Tui.cpp
+    src/ui/Theme.cpp
+  )
+  set(NCURSES_LINK PkgConfig::NCURSESW)
+endif()
+
+# --- Core library (everything except main(), so tests can link it) ---
+add_library(llm_core STATIC
+  ${CORE_SOURCES}
+  ${APP_SOURCES}
+  ${UI_SOURCES}
 )
 
 target_include_directories(llm_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
@@ -78,7 +100,7 @@ target_include_directories(llm_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(llm_core PUBLIC
   CURL::libcurl
   SQLite::SQLite3
-  PkgConfig::NCURSESW
+  ${NCURSES_LINK}
   nlohmann_json
   Threads::Threads
 )

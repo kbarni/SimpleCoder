@@ -3,14 +3,18 @@
 #include <string>
 #include <string_view>
 
+#ifdef SIMPLE_UI
+#include "app/SimpleApp.hpp"
+#else
 #include <ncursesw/ncurses.h>
-
 #include "app/App.hpp"
-#include "app/Config.hpp"
-#include "app/SystemPrompt.hpp"
 #include "ui/ChatView.hpp"
 #include "ui/InputBar.hpp"
 #include "ui/Tui.hpp"
+#endif
+
+#include "app/Config.hpp"
+#include "app/SystemPrompt.hpp"
 
 namespace {
 
@@ -64,7 +68,11 @@ int main(int argc, char** argv) {
     // An AGENTS.md in the project (or beside the binary) overrides the
     // configured system prompt.
     cfg.system_prompt = llmcli::resolveSystemPrompt(cfg.system_prompt);
+#ifdef SIMPLE_UI
+    llmcli::SimpleApp app(std::move(cfg));
+#else
     llmcli::App app(std::move(cfg));
+#endif
     return app.run();
   } catch (const llmcli::ConfigError& e) {
     namespace fs = std::filesystem;
